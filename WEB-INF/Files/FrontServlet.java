@@ -1,10 +1,15 @@
 package etu1792.framework.servlet;
 
 import java.io.*;
+import java.util.HashMap;
 import javax.servlet.*;
 import javax.servlet.http.*;
 
+import etu1792.framework.Mapping;
+
 public class FrontServlet extends HttpServlet {
+    HashMap<String,Mapping> MappingUrls;
+
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
         throws ServletException, IOException {
         String url=request.getServletPath();

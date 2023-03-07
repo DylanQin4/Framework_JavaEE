@@ -1,3 +1,5 @@
+package etu1792.framework;
+
 public class Mapping {
     String className;
     String Methode;
