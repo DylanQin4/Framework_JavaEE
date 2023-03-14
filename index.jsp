@@ -2,7 +2,7 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<title> fs </title>
+	<title>Framework</title>
 </head>
 <body>
 	<h1> Page accueil vers meme servlet </h1>
