@@ -24,7 +24,7 @@
 
     <servlet>   
         <servlet-name>FrontServlet</servlet-name>
-        <servlet-class>etu2043.framework.servlet.FrontServlet</servlet-class>
+        <servlet-class>etu1792.framework.servlet.FrontServlet</servlet-class>
         <init-param>
           <param-name>package</param-name>
           <param-value>modele</param-value>

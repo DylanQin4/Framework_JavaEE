@@ -3,13 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package etu2043.framework.servlet;
+package etu1792.framework.servlet;
 
 
 
-import etu2043.framework.Mapping;
-import etu2043.framework.ModelView;
-import etu2043.framework.annotation.Url;
+import etu1792.framework.Mapping;
+import etu1792.framework.ModelView;
+import etu1792.framework.annotation.Url;
 import jakarta.servlet.ServletConfig;
 import java.io.IOException;
 import java.io.PrintWriter;
