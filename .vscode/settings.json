@@ -1,7 +1,0 @@
-{
-    "java.project.referencedLibraries": [
-        "lib/**/*.jar",
-        "f:\\javax.servlet.jar",
-        "/usr/share/java/postgresql-42.5.0.jar"
-    ]
-}
