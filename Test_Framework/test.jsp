@@ -5,6 +5,6 @@
 	<title>test</title>
 </head>
 <body>
-	<h1><%= String.valueOf(request.getAttribute("test")) %></h1>
+	<h1>Test</h1>
 </body>
 </html>

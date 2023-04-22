@@ -20,8 +20,10 @@ public class Employer {
     String nom;
 
     @Url(lien="test")
-    public String test(){
-        return "Test";
+    public ModelView test(){
+        ModelView mv = new ModelView();
+        mv.setView("test.jsp");
+        return mv;
     }
     
     public int getId() {

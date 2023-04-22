@@ -98,8 +98,9 @@ public class FrontServlet extends HttpServlet {
                     Object objet = classMapping.newInstance();
                     Method method = objet.getClass().getMethod(mappingUrls.get(key).getMethod());
                     
-                    String mv = (String)method.invoke(objet);
-                    out.println(mv);
+                    ModelView mv = (ModelView)method.invoke(objet);
+                    RequestDispatcher dispat = request.getRequestDispatcher(mv.getView());
+                    dispat.forward(request,response);
                     
                 } catch (Exception ex) {
                     out.println(ex);
@@ -154,4 +155,23 @@ public class FrontServlet extends HttpServlet {
     public void setMappingUrls(HashMap<String, Mapping> mappingUrls) {
         this.mappingUrls = mappingUrls;
     }
+    
+    // public static HashMap<String,Mapping> getAllMapping(String pkg){
+    //     HashMap<String , Mapping> mappingUrls = new HashMap<String,Mapping>();
+    //     Set<Method> method = new Reflections(pkg,new MethodAnnotationsScanner()).getMethodsAnnotatedWith(Url.class);
+    //     Iterator<Method> itr = method.iterator();
+    //     while(itr.hasNext()){
+    //         Method m = itr.next();
+            
+    //         Mapping tempMapping = new Mapping();
+    //         tempMapping.setClassName(m.getDeclaringClass().getSimpleName());
+    //         tempMapping.setMethod(m.getName());
+            
+    //         Url url = m.getAnnotation(Url.class);
+    //         String cle = url.lien();
+            
+    //         mappingUrls.put(cle, tempMapping);
+    //     }
+    //     return mappingUrls;
+    // }
 }
