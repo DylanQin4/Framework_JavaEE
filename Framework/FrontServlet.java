@@ -99,11 +99,18 @@ public class FrontServlet extends HttpServlet {
                     Method method = objet.getClass().getMethod(mappingUrls.get(key).getMethod());
                     
                     ModelView mv = (ModelView)method.invoke(objet);
+                    Set keyMv = mv.getData().keySet();
+                    Iterator itr2 = keyMv.iterator();
+                    while(itr2.hasNext()){
+                        String keyMvString = (String)itr2.next();
+                        request.setAttribute(keyMvString , mv.getData().get(keyMvString));
+                    }
+
                     RequestDispatcher dispat = request.getRequestDispatcher(mv.getView());
                     dispat.forward(request,response);
                     
                 } catch (Exception ex) {
-                    out.println(ex);
+                    out.println(ex.getMessage());
                 }
             }
         }

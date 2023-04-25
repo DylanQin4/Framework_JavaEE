@@ -19,10 +19,23 @@ public class Employer {
     int id;
     String nom;
 
+    public Employer(){}
+
+    public Employer(int id , String nom){
+        this.setId(id);
+        this.setNom(nom);
+    }
+
     @Url(lien="test")
     public ModelView test(){
+        Employer[] list_emp = new Employer[3];
+        list_emp[0] = new Employer(1,"Emp 1");
+        list_emp[1] = new Employer(2,"Emp 2");
+        list_emp[2] = new Employer(3,"Emp 3");
+
         ModelView mv = new ModelView();
         mv.setView("test.jsp");
+        mv.addItem("listes", list_emp);
         return mv;
     }
     

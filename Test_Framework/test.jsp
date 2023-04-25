@@ -1,3 +1,7 @@
+<%@ page import="modele.Employer" %>
+<% 
+    Employer[] list_emp = (Employer[])request.getAttribute("listes");
+%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -5,6 +9,15 @@
 	<title>test</title>
 </head>
 <body>
-	<h1>Test</h1>
+
+	<h1>Listes Employer</h1>
+	<% for(int j=0;j<list_emp.length ;j++){ %>
+		<% out.print(list_emp[j].getId()); %>
+		<% out.print(list_emp[j].getNom()); %>
+		<br>
+	<% } %>
 </body>
 </html>
+
+
+
