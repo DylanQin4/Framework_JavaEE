@@ -1,5 +1,5 @@
 cd Framework
-javac -d . *.java
+javac -parameters -d . *.java
 jar cvf framework.jar etu1792
-move framework.jar ../Test_Framework/WEB-INF/lib
+move framework.jar ../Test_Framework/lib
 cd ../

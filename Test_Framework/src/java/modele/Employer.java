@@ -1,7 +1,6 @@
 package modele;
 
 import etu1792.framework.annotation.Url;
-import java.util.HashMap;
 import etu1792.framework.*;
 import java.sql.Date;
 
@@ -40,6 +39,25 @@ public class Employer {
         return mv;
     }
     
+    @Url(lien="employer_by_Id")
+    public ModelView getEmployerById(int id){
+        Employer[] list_emp = new Employer[3];
+        list_emp[0] = new Employer(1,"Emp 1" , Date.valueOf("2000-01-01"));
+        list_emp[1] = new Employer(2,"Emp 2" , Date.valueOf("2000-01-01"));
+        list_emp[2] = new Employer(3,"Emp 3" , Date.valueOf("2000-01-01"));
+
+        ModelView mv = new ModelView();
+        mv.setView("info_employer.jsp");
+        
+        for(int i=0 ; i<list_emp.length ; i++){
+            if(list_emp[i].getId()==id){
+                mv.addItem("employer",list_emp[i]);
+            }
+        }
+        
+        return mv;
+    }
+
     public int getId() {
         return id;
     }

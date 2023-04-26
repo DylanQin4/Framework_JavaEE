@@ -14,6 +14,7 @@ import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletConfig;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
+import java.lang.reflect.Parameter;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -38,20 +39,20 @@ public class FrontServlet extends HttpServlet {
         PrintWriter out = response.getWriter();
         String servletName = request.getServletPath().substring(1);
 
-        HashMap<String,Mapping> mappingUrls = this.getMappingUrls();
+        HashMap<String,Mapping> mappingUrls = this.getMappingUrls(); 
         Set<String> mappingUrlsKeys = mappingUrls.keySet();
 
         for(String key : mappingUrlsKeys){
             if(key.equals(servletName)){
                 try {
                     Class<?> classMapping = Class.forName(this.getInitParameter("package")+"."+mappingUrls.get(key).getClassName());
-                    Object objet = classMapping.newInstance();
+                    Object objet = classMapping.getDeclaredConstructor().newInstance();
                     
                     this.setObject(request,response,objet);
                     this.dispatchModelView(request , response , objet , key);
 
                 } catch (Exception ex) {
-                    out.println(ex);
+                    out.println(ex.getMessage());
                 }
             }
         }
@@ -70,31 +71,51 @@ public class FrontServlet extends HttpServlet {
             String parameter = request.getParameter(attributs[i].getName());
             if(parameter!=null){
                 Method set = objet.getClass().getDeclaredMethod(setters[i], attributs[i].getType());
-                if(attributs[i].getType() == Integer.TYPE){
-                    set.invoke(objet,Integer.parseInt(parameter));
-                }
-                if(attributs[i].getType() == Double.TYPE){
-                    set.invoke(objet,Double.parseDouble(parameter));
-                }
-                if(attributs[i].getType() == Float.TYPE){
-                    set.invoke(objet,Float.parseFloat(parameter));
-                }
-                if(attributs[i].getType() == Date.class){
-                    set.invoke(objet,Date.valueOf(parameter));
-                }
-                if(attributs[i].getType() == String.class){
-                    set.invoke(objet,parameter);
-                }
+                set.invoke(objet,FrontServlet.castStringToType(parameter,attributs[i].getType()));
             }
         }
 
     }
 
+    public Method getMethodByUrl(Object objet , String mappingUrlkey)
+            throws Exception{
+        Method[] all_methods = objet.getClass().getDeclaredMethods();
+        for(int i=0 ; i<all_methods.length ; i++){
+            Annotation[] annotations = all_methods[i].getAnnotations();
+            for (int j = 0; j < annotations.length; j++) {
+                if(annotations[j].annotationType()==Url.class)
+                {
+                    Url url=(Url)annotations[j];
+                    if(url.lien().compareTo(mappingUrlkey)==0 && all_methods[i].getName().compareTo(mappingUrls.get(mappingUrlkey).getMethod())==0){
+                        return all_methods[i];
+                    }
+                }
+            }
+        }
+        throw new Exception("Method not found");
+    }
+
+    public Object[] getMethodParametersValues(HttpServletRequest request , HttpServletResponse response , Method method){
+        Parameter[] parameters = method.getParameters();
+        Object[] parametersValue = new Object[parameters.length];
+        for(int i=0 ; i<parameters.length ; i++){
+            String urlParam = request.getParameter(parameters[i].getName());
+            parametersValue[i] = FrontServlet.castStringToType(urlParam,parameters[i].getType());
+        }
+        return parametersValue;
+    }
     public void dispatchModelView(HttpServletRequest request , HttpServletResponse response , Object objet , String mappingUrlkey)
             throws Exception{
-        Method method = objet.getClass().getMethod(mappingUrls.get(mappingUrlkey).getMethod());
+        Method method = this.getMethodByUrl(objet,mappingUrlkey);
+        Object[] parameters = this.getMethodParametersValues(request,response,method);
         
-        ModelView mv = (ModelView)method.invoke(objet);
+        ModelView mv = new ModelView();
+        if(parameters.length==0){
+            mv = (ModelView)method.invoke(objet);
+        }else if(parameters.length > 0){
+            mv = (ModelView)method.invoke(objet,parameters);
+        }
+        
         Set<String> mvKeys = mv.getData().keySet();
         for(String mvKey : mvKeys){
             request.setAttribute(mvKey , mv.getData().get(mvKey));
@@ -140,6 +161,30 @@ public class FrontServlet extends HttpServlet {
         return mappingUrl;
     }
 
+    public static <T> T castStringToType(String value, Class<T> type) {
+        if (value == null) {
+            return null;
+        }
+        if (type == String.class) {
+            return (T) value;
+        } else if (type == Integer.class || type == int.class) {
+            return (T) Integer.valueOf(value);
+        } else if (type == Double.class || type == double.class) {
+            return (T) Double.valueOf(value);
+        } else if (type == Float.class || type == float.class) {
+            return (T) Float.valueOf(value);
+        } else if (type == Long.class || type == long.class) {
+            return (T) Long.valueOf(value);
+        } else if (type == Boolean.class || type == boolean.class) {
+            return (T) Boolean.valueOf(value);
+        } else if (type == Character.class || type == char.class) {
+            return (T) Character.valueOf(value.charAt(0));
+        } else if (type == Date.class) {
+            return (T) Date.valueOf(value);
+        } else {
+            throw new IllegalArgumentException("Unsupported type: " + type.getName());
+        }
+    }
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
