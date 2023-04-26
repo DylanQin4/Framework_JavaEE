@@ -1,19 +1,13 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package etu1792.framework;
 
-/**
- *
- * @author ITU
- */
 public class Mapping {
     String className;
     String method;
 
-    public Mapping(){}
+    public Mapping(){
+        
+    }
+
     public Mapping(String cl , String met){
         this.setClassName(cl);
         this.setMethod(met);

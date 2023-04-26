@@ -14,6 +14,7 @@
 	<% for(int j=0;j<list_emp.length ;j++){ %>
 		<% out.print(list_emp[j].getId()); %>
 		<% out.print(list_emp[j].getNom()); %>
+		<% out.print(list_emp[j].getDate()); %>
 		<br>
 	<% } %>
 </body>

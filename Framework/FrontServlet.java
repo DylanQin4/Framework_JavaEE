@@ -1,16 +1,8 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package etu1792.framework.servlet;
-
-
 
 import etu1792.framework.Mapping;
 import etu1792.framework.ModelView;
 import etu1792.framework.annotation.Url;
-import jakarta.servlet.ServletConfig;
 import java.io.IOException;
 import java.io.PrintWriter;
 import jakarta.servlet.RequestDispatcher;
@@ -19,142 +11,147 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletConfig;
 import java.lang.reflect.Method;
-import java.util.Collection;
+import java.lang.reflect.Field;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.lang.annotation.Annotation;
+import java.sql.Date;
 
-/**
- *
- * @author ITU
- */
 public class FrontServlet extends HttpServlet { 
+
     HashMap<String,Mapping> mappingUrls;
 
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-        // String pkg = this.getInitParameter("package_modele");
-        HashMap<String,Mapping> mappingUrl =  new HashMap<String,Mapping>();
-        // Obtenez le ServletContext
+        String pkg = this.getInitParameter("package");
+        HashMap<String,Mapping> mappingUrl =  this.allMappingUrls(pkg);
+        this.setMappingUrls(mappingUrl);
+    }
+    
+    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        PrintWriter out = response.getWriter();
+        String servletName = request.getServletPath().substring(1);
+
+        HashMap<String,Mapping> mappingUrls = this.getMappingUrls();
+        Set<String> mappingUrlsKeys = mappingUrls.keySet();
+
+        for(String key : mappingUrlsKeys){
+            if(key.equals(servletName)){
+                try {
+                    Class<?> classMapping = Class.forName(this.getInitParameter("package")+"."+mappingUrls.get(key).getClassName());
+                    Object objet = classMapping.newInstance();
+                    
+                    this.setObject(request,response,objet);
+                    this.dispatchModelView(request , response , objet , key);
+
+                } catch (Exception ex) {
+                    out.println(ex);
+                }
+            }
+        }
+    }
+
+    public void setObject(HttpServletRequest request , HttpServletResponse response , Object objet )
+            throws Exception{
+
+        Field[] attributs = objet.getClass().getDeclaredFields();
+        String[] setters = new String[attributs.length];
+        for(int i=0 ; i<attributs.length ; i++){
+            setters[i] = "set"+attributs[i].getName().substring(0,1).toUpperCase()+attributs[i].getName().substring(1);
+        }
+
+        for(int i=0 ; i<attributs.length ; i++){
+            String parameter = request.getParameter(attributs[i].getName());
+            if(parameter!=null){
+                Method set = objet.getClass().getDeclaredMethod(setters[i], attributs[i].getType());
+                if(attributs[i].getType() == Integer.TYPE){
+                    set.invoke(objet,Integer.parseInt(parameter));
+                }
+                if(attributs[i].getType() == Double.TYPE){
+                    set.invoke(objet,Double.parseDouble(parameter));
+                }
+                if(attributs[i].getType() == Float.TYPE){
+                    set.invoke(objet,Float.parseFloat(parameter));
+                }
+                if(attributs[i].getType() == Date.class){
+                    set.invoke(objet,Date.valueOf(parameter));
+                }
+                if(attributs[i].getType() == String.class){
+                    set.invoke(objet,parameter);
+                }
+            }
+        }
+
+    }
+
+    public void dispatchModelView(HttpServletRequest request , HttpServletResponse response , Object objet , String mappingUrlkey)
+            throws Exception{
+        Method method = objet.getClass().getMethod(mappingUrls.get(mappingUrlkey).getMethod());
+        
+        ModelView mv = (ModelView)method.invoke(objet);
+        Set<String> mvKeys = mv.getData().keySet();
+        for(String mvKey : mvKeys){
+            request.setAttribute(mvKey , mv.getData().get(mvKey));
+        }
+
+        RequestDispatcher dispat = request.getRequestDispatcher(mv.getView());
+        dispat.forward(request,response);
+    }
+
+    public HashMap<String, Mapping> allMappingUrls(String pckg){
+        HashMap<String, Mapping> mappingUrl = new HashMap<String, Mapping>();
+
         ServletContext context = getServletContext();
-        // Obtenez tous les noms des fichiers dans le package pkg
-        String path = "/WEB-INF/classes/"+this.getInitParameter("package");
+        String path = "/WEB-INF/classes/"+pckg;
 
         Set<String> classNames = context.getResourcePaths(path);
         for (String className : classNames) {
             if (className.endsWith(".class")) {
-                // Supprimez l'extension ".class" du nom de fichier pour obtenir le nom de classe
                 String fullClassName = className.substring(0, className.length() - 6);
                 int taille = fullClassName.split("/").length;
                 fullClassName = fullClassName.split("/")[taille-2]+"."+fullClassName.split("/")[taille-1];
                 try {
-                    // Chargez la classe
                     Class<?> myClass = Class.forName(fullClassName);
-                    // Appelez une méthode de l'objet
-                    Method[] m = myClass.getDeclaredMethods();
-                    for (int i = 0; i < m.length; i++) {
-                        Annotation[] a = m[i].getAnnotations();
-                        for (int j = 0; j < a.length; j++) {
-                            if(a[j].annotationType()==Url.class)
+
+                    Method[] methods = myClass.getDeclaredMethods();
+                    for (int i = 0; i < methods.length; i++) {
+                        Annotation[] annotations = methods[i].getAnnotations();
+                        for (int j = 0; j < annotations.length; j++) {
+                            if(annotations[j].annotationType()==Url.class)
                             {
-                                Url u=(Url)a[j];
-                                Mapping map=new Mapping(myClass.getSimpleName(),m[i].getName());
-                                mappingUrl.put(u.lien(),map);
+                                Url url=(Url)annotations[j];
+                                Mapping map=new Mapping(myClass.getSimpleName(),methods[i].getName());
+                                mappingUrl.put(url.lien(),map);
                             }
                         }
                     }
                 } catch (Exception e) {
-                    System.out.println("Impossible de charger la classe " + fullClassName + ": " + e.getMessage());
+                    System.out.println(e);
                 }
             }
         }
 
-        this.setMappingUrls(mappingUrl);
-    }
-    
-    
-    
-    protected void processRequest(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String lienMapping = String.valueOf(request.getRequestURL());
-        String[] split  = lienMapping.split("/");
-
-        PrintWriter out = response.getWriter();
-        HashMap<String,Mapping> mappingUrls = this.getMappingUrls();
-        Set keys = mappingUrls.keySet();
-        Iterator itr = keys.iterator();
-
-        while(itr.hasNext()){
-            String key = (String) itr.next();
-            if(key.equals(split[4])){
-                try {
-                    Class<?> classMapping = Class.forName("modele."+mappingUrls.get(key).getClassName());
-                    Object objet = classMapping.newInstance();
-                    Method method = objet.getClass().getMethod(mappingUrls.get(key).getMethod());
-                    
-                    ModelView mv = (ModelView)method.invoke(objet);
-                    Set keyMv = mv.getData().keySet();
-                    Iterator itr2 = keyMv.iterator();
-                    while(itr2.hasNext()){
-                        String keyMvString = (String)itr2.next();
-                        request.setAttribute(keyMvString , mv.getData().get(keyMvString));
-                    }
-
-                    RequestDispatcher dispat = request.getRequestDispatcher(mv.getView());
-                    dispat.forward(request,response);
-                    
-                } catch (Exception ex) {
-                    out.println(ex.getMessage());
-                }
-            }
-        }
+        return mappingUrl;
     }
 
-    // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
-    /**
-     * Handles the HTTP <code>GET</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         processRequest(request, response);
     }
 
-    /**
-     * Handles the HTTP <code>POST</code> method.
-     *
-     * @param request servlet request
-     * @param response servlet response
-     * @throws ServletException if a servlet-specific error occurs
-     * @throws IOException if an I/O error occurs
-     */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         processRequest(request, response);
     }
 
-    /**
-     * Returns a short description of the servlet.
-     *
-     * @return a String containing servlet description
-     */
-    @Override
-    public String getServletInfo() {
-        return "Short description";
-    }// </editor-fold> 
-    
     public HashMap<String, Mapping> getMappingUrls() {
         return mappingUrls;
     }
@@ -162,23 +159,4 @@ public class FrontServlet extends HttpServlet {
     public void setMappingUrls(HashMap<String, Mapping> mappingUrls) {
         this.mappingUrls = mappingUrls;
     }
-    
-    // public static HashMap<String,Mapping> getAllMapping(String pkg){
-    //     HashMap<String , Mapping> mappingUrls = new HashMap<String,Mapping>();
-    //     Set<Method> method = new Reflections(pkg,new MethodAnnotationsScanner()).getMethodsAnnotatedWith(Url.class);
-    //     Iterator<Method> itr = method.iterator();
-    //     while(itr.hasNext()){
-    //         Method m = itr.next();
-            
-    //         Mapping tempMapping = new Mapping();
-    //         tempMapping.setClassName(m.getDeclaringClass().getSimpleName());
-    //         tempMapping.setMethod(m.getName());
-            
-    //         Url url = m.getAnnotation(Url.class);
-    //         String cle = url.lien();
-            
-    //         mappingUrls.put(cle, tempMapping);
-    //     }
-    //     return mappingUrls;
-    // }
 }

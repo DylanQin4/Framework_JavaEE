@@ -1,41 +1,42 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package modele;
 
 import etu1792.framework.annotation.Url;
-
 import java.util.HashMap;
-
 import etu1792.framework.*;
+import java.sql.Date;
 
-/**
- *
- * @author ITU
- */
+
 public class Employer {
     int id;
     String nom;
+    Date date;
 
     public Employer(){}
 
-    public Employer(int id , String nom){
+    public Employer(int id , String nom , Date date){
         this.setId(id);
         this.setNom(nom);
+        this.setDate(date);
     }
 
-    @Url(lien="test")
-    public ModelView test(){
+    @Url(lien="all_employer")
+    public ModelView findAll(){
         Employer[] list_emp = new Employer[3];
-        list_emp[0] = new Employer(1,"Emp 1");
-        list_emp[1] = new Employer(2,"Emp 2");
-        list_emp[2] = new Employer(3,"Emp 3");
+        list_emp[0] = new Employer(1,"Emp 1" , Date.valueOf("2000-01-01"));
+        list_emp[1] = new Employer(2,"Emp 2" , Date.valueOf("2000-01-01"));
+        list_emp[2] = new Employer(3,"Emp 3" , Date.valueOf("2000-01-01"));
 
         ModelView mv = new ModelView();
-        mv.setView("test.jsp");
+        mv.setView("listEmployer.jsp");
         mv.addItem("listes", list_emp);
+        return mv;
+    }
+
+    @Url(lien="save_employer")
+    public ModelView save(){
+        ModelView mv = new ModelView();
+        mv.setView("saveEmp.jsp");
+        mv.addItem("employer",this);
         return mv;
     }
     
@@ -53,5 +54,12 @@ public class Employer {
 
     public void setNom(String nom) {
         this.nom = nom;
+    }
+
+    public void setDate(Date date){
+        this.date = date;
+    }
+    public Date getDate(){
+        return this.date;
     }
 }
