@@ -9,21 +9,26 @@ public class Employer {
     int id;
     String nom;
     Date date;
+    String[] diplome;
+    int[] choix;
+    FileUpload image;
 
     public Employer(){}
 
-    public Employer(int id , String nom , Date date){
+    public Employer(int id , String nom , Date date, String[] diplome){
         this.setId(id);
         this.setNom(nom);
         this.setDate(date);
+        this.setDiplome(diplome);
     }
 
     @Url(lien="all_employer")
     public ModelView findAll(){
+        String[] diplome = {"Licence","Bacc"};
         Employer[] list_emp = new Employer[3];
-        list_emp[0] = new Employer(1,"Emp 1" , Date.valueOf("2000-01-01"));
-        list_emp[1] = new Employer(2,"Emp 2" , Date.valueOf("2000-01-01"));
-        list_emp[2] = new Employer(3,"Emp 3" , Date.valueOf("2000-01-01"));
+        list_emp[0] = new Employer(1,"Emp 1" , Date.valueOf("2000-01-01") , diplome);
+        list_emp[1] = new Employer(2,"Emp 2" , Date.valueOf("2000-01-01") , diplome);
+        list_emp[2] = new Employer(3,"Emp 3" , Date.valueOf("2000-01-01") , diplome);
 
         ModelView mv = new ModelView();
         mv.setView("listEmployer.jsp");
@@ -41,10 +46,11 @@ public class Employer {
     
     @Url(lien="employer_by_Id")
     public ModelView getEmployerById(int id){
+        String[] diplome = {"Licence","Bacc"};
         Employer[] list_emp = new Employer[3];
-        list_emp[0] = new Employer(1,"Emp 1" , Date.valueOf("2000-01-01"));
-        list_emp[1] = new Employer(2,"Emp 2" , Date.valueOf("2000-01-01"));
-        list_emp[2] = new Employer(3,"Emp 3" , Date.valueOf("2000-01-01"));
+        list_emp[0] = new Employer(1,"Emp 1" , Date.valueOf("2000-01-01"),diplome);
+        list_emp[1] = new Employer(2,"Emp 2" , Date.valueOf("2000-01-01"),diplome);
+        list_emp[2] = new Employer(3,"Emp 3" , Date.valueOf("2000-01-01"),diplome);
 
         ModelView mv = new ModelView();
         mv.setView("info_employer.jsp");
@@ -80,4 +86,29 @@ public class Employer {
     public Date getDate(){
         return this.date;
     }
+
+    public String[] getDiplome() {
+        return diplome;
+    }
+
+    public void setDiplome(String[] diplome) {
+        this.diplome = diplome;
+    }
+
+    public int[] getChoix() {
+        return choix;
+    }
+
+    public void setChoix(int[] choix) {
+        this.choix = choix;
+    }
+
+    public FileUpload getImage() {
+        return image;
+    }
+
+    public void setImage(FileUpload image) {
+        this.image = image;
+    }
+    
 }

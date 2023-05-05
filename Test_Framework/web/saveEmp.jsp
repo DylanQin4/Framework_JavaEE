@@ -15,6 +15,14 @@
         <%= emp.getId() %>
         <%= emp.getNom() %>
         <%= emp.getDate() %>
+        <% for(int i=0 ; i<emp.getDiplome().length ; i++){ %>   
+            <%= emp.getDiplome()[i] %>
+        <% } %>
+        <% for(int i=0 ; i<emp.getChoix().length ; i++){ %>   
+            <%= emp.getChoix()[i] %>
+        <% } %>
+        <%= emp.getImage().getName() %>
+        <%= emp.getImage().getBytes().length %>
     </p>
 </body>
 </html>

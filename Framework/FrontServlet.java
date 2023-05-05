@@ -1,5 +1,6 @@
 package etu1792.framework.servlet;
 
+import etu1792.framework.FileUpload;
 import etu1792.framework.Mapping;
 import etu1792.framework.ModelView;
 import etu1792.framework.annotation.Url;
@@ -12,6 +13,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletConfig;
+import jakarta.servlet.http.Part;
+import java.util.Collection;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 import java.lang.reflect.Parameter;
@@ -22,7 +25,12 @@ import java.util.Map;
 import java.util.Set;
 import java.lang.annotation.Annotation;
 import java.sql.Date;
+import jakarta.servlet.annotation.MultipartConfig;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 
+
+@MultipartConfig
 public class FrontServlet extends HttpServlet { 
 
     HashMap<String,Mapping> mappingUrls;
@@ -68,10 +76,22 @@ public class FrontServlet extends HttpServlet {
         }
 
         for(int i=0 ; i<attributs.length ; i++){
-            String parameter = request.getParameter(attributs[i].getName());
-            if(parameter!=null){
-                Method set = objet.getClass().getDeclaredMethod(setters[i], attributs[i].getType());
-                set.invoke(objet,FrontServlet.castStringToType(parameter,attributs[i].getType()));
+            Method set = objet.getClass().getDeclaredMethod(setters[i], attributs[i].getType());
+            if(attributs[i].getType() == (new FileUpload()).getClass() && request.getContentType() != null && request.getContentType().toLowerCase().startsWith("multipart/form-data")){
+                Part filePart = request.getPart(attributs[i].getName());
+                if (filePart != null) {
+                    String fileName = filePart.getSubmittedFileName();
+                    byte[] fileBytes = convertToByteArray(filePart);
+                    FileUpload fileUpload = new FileUpload();
+                    fileUpload.setName(fileName);
+                    fileUpload.setBytes(fileBytes);
+                    set.invoke(objet,fileUpload);
+                }
+            }else{
+                String[] parameter = request.getParameterValues(attributs[i].getName());
+                if(parameter!=null){
+                    set.invoke(objet,FrontServlet.castStringToType(parameter,attributs[i].getType()));
+                }
             }
         }
 
@@ -99,7 +119,7 @@ public class FrontServlet extends HttpServlet {
         Parameter[] parameters = method.getParameters();
         Object[] parametersValue = new Object[parameters.length];
         for(int i=0 ; i<parameters.length ; i++){
-            String urlParam = request.getParameter(parameters[i].getName());
+            String[] urlParam = request.getParameterValues(parameters[i].getName());
             parametersValue[i] = FrontServlet.castStringToType(urlParam,parameters[i].getType());
         }
         return parametersValue;
@@ -161,30 +181,88 @@ public class FrontServlet extends HttpServlet {
         return mappingUrl;
     }
 
-    public static <T> T castStringToType(String value, Class<T> type) {
-        if (value == null) {
+    public static <T> T castStringToType(String[] value, Class<T> type) {
+        if(value==null){
             return null;
         }
-        if (type == String.class) {
-            return (T) value;
-        } else if (type == Integer.class || type == int.class) {
-            return (T) Integer.valueOf(value);
-        } else if (type == Double.class || type == double.class) {
-            return (T) Double.valueOf(value);
-        } else if (type == Float.class || type == float.class) {
-            return (T) Float.valueOf(value);
-        } else if (type == Long.class || type == long.class) {
-            return (T) Long.valueOf(value);
-        } else if (type == Boolean.class || type == boolean.class) {
-            return (T) Boolean.valueOf(value);
-        } else if (type == Character.class || type == char.class) {
-            return (T) Character.valueOf(value.charAt(0));
-        } else if (type == Date.class) {
-            return (T) Date.valueOf(value);
-        } else {
-            throw new IllegalArgumentException("Unsupported type: " + type.getName());
+        if(!type.isArray()){
+            if (type == String.class) {
+                return (T) value[0];
+            } else if (type == Integer.class || type == int.class) {
+                return (T) Integer.valueOf(value[0]);
+            } else if (type == Double.class || type == double.class) {
+                return (T) Double.valueOf(value[0]);
+            } else if (type == Float.class || type == float.class) {
+                return (T) Float.valueOf(value[0]);
+            } else if (type == Boolean.class || type == boolean.class) {
+                return (T) Boolean.valueOf(value[0]);
+            } else if (type == Date.class) {
+                return (T) Date.valueOf(value[0]);
+            }else if(type == FileUpload.class){
+                FileUpload fichier = new FileUpload();
+                fichier.setName(value[0]);
+                return (T) fichier;
+            } else {
+                throw new IllegalArgumentException("Unsupported type: " + type.getName());
+            }
+        }else{
+            if (type == String[].class) {
+                return (T) value;
+            } else if (type == Integer[].class) {
+                Integer[] tab = new Integer[value.length];
+                for (int i = 0; i < value.length; i++) {
+                    tab[i] = Integer.valueOf(value[i]);
+                }
+                return (T) tab;
+            } else if (type == Double[].class) {
+                Double[] tab = new Double[value.length];
+                for (int i = 0; i < value.length; i++) {
+                    tab[i] = Double.valueOf(value[i]);
+                }
+                return (T) tab;
+            } else if (type == Float[].class) {
+                Float[] tab = new Float[value.length];
+                for (int i = 0; i < value.length; i++) {
+                    tab[i] = Float.valueOf(value[i]);
+                }
+                return (T) tab;
+            } else if(type == int[].class){
+                int[] tab = new int[value.length];
+                for (int i = 0; i < value.length; i++) {
+                    tab[i] = Integer.valueOf(value[i]);
+                }
+                return (T) tab;
+            }else if( type == double[].class){
+                double[] tab = new double[value.length];
+                for (int i = 0; i < value.length; i++) {
+                    tab[i] = Double.valueOf(value[i]);
+                }
+                return (T) tab;
+            }else if(type == float[].class){
+                float[] tab = new float[value.length];
+                for (int i = 0; i < value.length; i++) {
+                    tab[i] = Float.valueOf(value[i]);
+                }
+                return (T) tab;
+            }else {
+                throw new IllegalArgumentException("Unsupported type: " + type.getName());
+            }
         }
     }
+
+    private byte[] convertToByteArray(Part filePart) throws IOException {
+        InputStream inputStream = filePart.getInputStream();
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        byte[] buffer = new byte[4096];
+        int bytesRead;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, bytesRead);
+        }
+
+        return outputStream.toByteArray();
+    }
+    
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
