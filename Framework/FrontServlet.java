@@ -3,6 +3,7 @@ package etu1792.framework.servlet;
 import etu1792.framework.FileUpload;
 import etu1792.framework.Mapping;
 import etu1792.framework.ModelView;
+import etu1792.framework.annotation.Scope;
 import etu1792.framework.annotation.Url;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -34,12 +35,17 @@ import java.io.InputStream;
 public class FrontServlet extends HttpServlet { 
 
     HashMap<String,Mapping> mappingUrls;
+    HashMap<String,Object> singletons;
 
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
         String pkg = this.getInitParameter("package");
+
         HashMap<String,Mapping> mappingUrl =  this.allMappingUrls(pkg);
         this.setMappingUrls(mappingUrl);
+
+        HashMap<String,Object> singleton = this.allSingletons(pkg);
+        this.setSingletons(singleton);
     }
     
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
@@ -48,21 +54,28 @@ public class FrontServlet extends HttpServlet {
         String servletName = request.getServletPath().substring(1);
 
         HashMap<String,Mapping> mappingUrls = this.getMappingUrls(); 
-        Set<String> mappingUrlsKeys = mappingUrls.keySet();
-
-        for(String key : mappingUrlsKeys){
-            if(key.equals(servletName)){
-                try {
-                    Class<?> classMapping = Class.forName(this.getInitParameter("package")+"."+mappingUrls.get(key).getClassName());
-                    Object objet = classMapping.getDeclaredConstructor().newInstance();
-                    
-                    this.setObject(request,response,objet);
-                    this.dispatchModelView(request , response , objet , key);
-
-                } catch (Exception ex) {
-                    out.println(ex.getMessage());
+        try {
+            String className = mappingUrls.get(servletName).getClassName();
+            Object objet;
+            if(singletons.containsKey(className))
+            {
+                objet = singletons.get(className);
+                if(objet == null)
+                {
+                    Class<?> classMapping = Class.forName(this.getInitParameter("package")+"."+mappingUrls.get(servletName).getClassName());
+                    objet = classMapping.getDeclaredConstructor().newInstance();
+                    singletons.replace(className, objet);
                 }
+                this.resetObject(objet);
+            }else{
+                Class<?> classMapping = Class.forName(this.getInitParameter("package")+"."+mappingUrls.get(servletName).getClassName());
+                objet = classMapping.getDeclaredConstructor().newInstance();
             }
+            this.setObject(request,response,objet);
+            this.dispatchModelView(request , response , objet , servletName);
+
+        } catch (Exception ex) {
+            out.println(ex.getMessage());
         }
     }
 
@@ -180,7 +193,73 @@ public class FrontServlet extends HttpServlet {
 
         return mappingUrl;
     }
+    public HashMap<String,Object> allSingletons(String pckg)
+    { 
+        HashMap<String,Object> singletons = new HashMap<String,Object>();
 
+        ServletContext context = getServletContext();
+        String path = "/WEB-INF/classes/"+pckg;
+
+        Set<String> classNames = context.getResourcePaths(path);
+        for (String className : classNames) {
+            if (className.endsWith(".class")) {
+                String fullClassName = className.substring(0, className.length() - 6);
+                int taille = fullClassName.split("/").length;
+                fullClassName = fullClassName.split("/")[taille-2]+"."+fullClassName.split("/")[taille-1];
+                try {
+                    Class<?> myClass = Class.forName(fullClassName);
+                    if(myClass.isAnnotationPresent(Scope.class))
+                    {
+                        Scope scope = (Scope)myClass.getAnnotation(Scope.class);
+                        if(!scope.value().equals("")){
+                            Object objet = myClass.getDeclaredConstructor().newInstance();
+                            singletons.put(myClass.getSimpleName(), null);
+                        }  
+                    }
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
+            }
+        }
+        return singletons;
+    }
+    public void resetObject(Object obj) {
+        Class<?> clazz = obj.getClass();
+        try {
+            for (Field field : clazz.getDeclaredFields()) {
+                field.setAccessible(true);
+                Class<?> fieldType = field.getType();
+                if (fieldType.isPrimitive()) {
+                    this.setPrimitiveDefault(obj, field);
+                } else {
+                    field.set(obj, null);
+                } 
+            }
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void setPrimitiveDefault(Object obj, Field field) throws IllegalAccessException {
+        Class<?> fieldType = field.getType();
+        if (fieldType == boolean.class) {
+            field.setBoolean(obj, false);
+        } else if (fieldType == byte.class) {
+            field.setByte(obj, (byte) 0);
+        } else if (fieldType == short.class) {
+            field.setShort(obj, (short) 0);
+        } else if (fieldType == int.class) {
+            field.setInt(obj, 0);
+        } else if (fieldType == long.class) {
+            field.setLong(obj, 0L);
+        } else if (fieldType == float.class) {
+            field.setFloat(obj, 0.0f);
+        } else if (fieldType == double.class) {
+            field.setDouble(obj, 0.0);
+        } else if (fieldType == char.class) {
+            field.setChar(obj, '\u0000');
+        }
+    }
     public static <T> T castStringToType(String[] value, Class<T> type) {
         if(value==null){
             return null;
@@ -259,7 +338,6 @@ public class FrontServlet extends HttpServlet {
         while ((bytesRead = inputStream.read(buffer)) != -1) {
             outputStream.write(buffer, 0, bytesRead);
         }
-
         return outputStream.toByteArray();
     }
     
@@ -281,5 +359,13 @@ public class FrontServlet extends HttpServlet {
 
     public void setMappingUrls(HashMap<String, Mapping> mappingUrls) {
         this.mappingUrls = mappingUrls;
+    }
+
+    public HashMap<String, Object> getSingletons() {
+        return singletons;
+    }
+
+    public void setSingletons(HashMap<String, Object> singletons) {
+        this.singletons = singletons;
     }
 }

@@ -2,9 +2,10 @@ package modele;
 
 import etu1792.framework.annotation.Url;
 import etu1792.framework.*;
+import etu1792.framework.annotation.Scope;
 import java.sql.Date;
 
-
+@Scope(value="Singleton")
 public class Employer {
     int id;
     String nom;
