@@ -7,6 +7,16 @@
           <param-name>package</param-name>
           <param-value>modele</param-value>
           <description>package_modele</description>
+        </init-param>  
+        <init-param>
+          <param-name>connected</param-name>
+          <param-value>is_connected</param-value>
+          <description>HashMap_key</description>
+        </init-param>  
+        <init-param>
+          <param-name>profil</param-name>
+          <param-value>profil</param-value>
+          <description>HashMap_key</description>
         </init-param>
     </servlet>
     <servlet-mapping>

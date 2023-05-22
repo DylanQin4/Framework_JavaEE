@@ -5,10 +5,12 @@ import etu1792.framework.Mapping;
 import etu1792.framework.ModelView;
 import etu1792.framework.annotation.Scope;
 import etu1792.framework.annotation.Url;
+import etu1792.framework.annotation.Auth;
 import java.io.IOException;
 import java.io.PrintWriter;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -139,14 +141,22 @@ public class FrontServlet extends HttpServlet {
     }
     public void dispatchModelView(HttpServletRequest request , HttpServletResponse response , Object objet , String mappingUrlkey)
             throws Exception{
+        HttpSession session = request.getSession();
+        String authKey_1 = this.getInitParameter("connected");
+        String authKey_2 = this.getInitParameter("profil");
+
         Method method = this.getMethodByUrl(objet,mappingUrlkey);
         Object[] parameters = this.getMethodParametersValues(request,response,method);
         
         ModelView mv = new ModelView();
-        if(parameters.length==0){
-            mv = (ModelView)method.invoke(objet);
-        }else if(parameters.length > 0){
-            mv = (ModelView)method.invoke(objet,parameters);
+        if(this.need_auth(method) && session.getAttribute(authKey_1)==null ){
+            this.dispatchToLogin(request,response);
+        }else if(!this.need_profil(method).equals("") && session.getAttribute(authKey_2)==null){
+            this.dispatchToLogin(request,response);
+        }else if(!this.need_profil(method).equals("") && session.getAttribute(authKey_2)!=null && !session.getAttribute(authKey_2).equals(need_profil(method))){
+            this.dispatchToLogin(request,response);
+        }else{
+            mv = this.getModelView(method, parameters , objet);
         }
         
         Set<String> mvKeys = mv.getData().keySet();
@@ -154,8 +164,59 @@ public class FrontServlet extends HttpServlet {
             request.setAttribute(mvKey , mv.getData().get(mvKey));
         }
 
+        if(mv.getAuth().get(authKey_1)!=null)
+        {
+            session.setAttribute(authKey_1,mv.getAuth().get(authKey_1));
+            if(mv.getAuth().get(authKey_2)!=null)
+            {
+                session.setAttribute(authKey_2,mv.getAuth().get(authKey_2));
+            }
+        }
+
         RequestDispatcher dispat = request.getRequestDispatcher(mv.getView());
         dispat.forward(request,response);
+    }
+
+    public void dispatchToLogin(HttpServletRequest request , HttpServletResponse response) throws Exception
+    {
+        RequestDispatcher dispat = request.getRequestDispatcher("login.jsp");
+        dispat.forward(request,response);
+    }
+    public ModelView getModelView(Method method , Object[] parameters , Object objet) throws Exception
+    {
+        ModelView mv = new ModelView();
+        if(parameters.length==0){
+            mv = (ModelView)method.invoke(objet);
+        }else if(parameters.length > 0){
+            mv = (ModelView)method.invoke(objet,parameters);
+        }  
+        return mv;
+    }
+    public boolean need_auth(Method method)
+    {
+        Annotation[] annotations = method.getAnnotations();
+        for (int j = 0; j < annotations.length; j++) {
+            if(annotations[j].annotationType()==Auth.class)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    public String need_profil(Method method)
+    {
+        Annotation[] annotations = method.getAnnotations();
+        for (int j = 0; j < annotations.length; j++) {
+            if(annotations[j].annotationType()==Auth.class)
+            {
+                Auth auth=(Auth)annotations[j];
+                if(!auth.profil().equals(""))
+                {
+                    return auth.profil();
+                }
+            }
+        }
+        return "";
     }
 
     public HashMap<String, Mapping> allMappingUrls(String pckg){
