@@ -4,6 +4,7 @@ import etu1792.framework.FileUpload;
 import etu1792.framework.Mapping;
 import etu1792.framework.ModelView;
 import etu1792.framework.annotation.Scope;
+import etu1792.framework.annotation.Session;
 import etu1792.framework.annotation.Url;
 import etu1792.framework.annotation.Auth;
 import java.io.IOException;
@@ -73,7 +74,7 @@ public class FrontServlet extends HttpServlet {
                 Class<?> classMapping = Class.forName(this.getInitParameter("package")+"."+mappingUrls.get(servletName).getClassName());
                 objet = classMapping.getDeclaredConstructor().newInstance();
             }
-            this.setObject(request,response,objet);
+            this.setObject(request,response,objet,servletName);
             this.dispatchModelView(request , response , objet , servletName);
 
         } catch (Exception ex) {
@@ -81,9 +82,10 @@ public class FrontServlet extends HttpServlet {
         }
     }
 
-    public void setObject(HttpServletRequest request , HttpServletResponse response , Object objet )
+    public void setObject(HttpServletRequest request , HttpServletResponse response , Object objet , String mappingUrlkey)
             throws Exception{
 
+        Method method = this.getMethodByUrl(objet,mappingUrlkey);
         Field[] attributs = objet.getClass().getDeclaredFields();
         String[] setters = new String[attributs.length];
         for(int i=0 ; i<attributs.length ; i++){
@@ -92,22 +94,36 @@ public class FrontServlet extends HttpServlet {
 
         for(int i=0 ; i<attributs.length ; i++){
             Method set = objet.getClass().getDeclaredMethod(setters[i], attributs[i].getType());
-            if(attributs[i].getType() == (new FileUpload()).getClass() && request.getContentType() != null && request.getContentType().toLowerCase().startsWith("multipart/form-data")){
-                Part filePart = request.getPart(attributs[i].getName());
-                if (filePart != null) {
-                    String fileName = filePart.getSubmittedFileName();
-                    byte[] fileBytes = convertToByteArray(filePart);
-                    FileUpload fileUpload = new FileUpload();
-                    fileUpload.setName(fileName);
-                    fileUpload.setBytes(fileBytes);
-                    set.invoke(objet,fileUpload);
+            if(attributs[i].getName().equals("session") && this.need_session(method)){
+                HashMap<String , Object> hashMapSessions = new HashMap<String,Object>();
+                HttpSession session = request.getSession();
+                Enumeration<String> attributeNames = session.getAttributeNames();
+                while (attributeNames.hasMoreElements()) {
+                    String attributeName = attributeNames.nextElement();
+                    Object attributeValue = session.getAttribute(attributeName);
+                    hashMapSessions.put(attributeName, attributeValue);
                 }
+                set.invoke(objet, hashMapSessions);
             }else{
-                String[] parameter = request.getParameterValues(attributs[i].getName());
-                if(parameter!=null){
-                    set.invoke(objet,FrontServlet.castStringToType(parameter,attributs[i].getType()));
+                
+                if(attributs[i].getType() == (new FileUpload()).getClass() && request.getContentType() != null && request.getContentType().toLowerCase().startsWith("multipart/form-data")){
+                    Part filePart = request.getPart(attributs[i].getName());
+                    if (filePart != null) {
+                        String fileName = filePart.getSubmittedFileName();
+                        byte[] fileBytes = convertToByteArray(filePart);
+                        FileUpload fileUpload = new FileUpload();
+                        fileUpload.setName(fileName);
+                        fileUpload.setBytes(fileBytes);
+                        set.invoke(objet,fileUpload);
+                    }
+                }else{
+                    String[] parameter = request.getParameterValues(attributs[i].getName());
+                    if(parameter!=null){
+                        set.invoke(objet,FrontServlet.castStringToType(parameter,attributs[i].getType()));
+                    }
                 }
             }
+            
         }
 
     }
@@ -218,7 +234,17 @@ public class FrontServlet extends HttpServlet {
         }
         return "";
     }
-
+    public boolean need_session(Method method)
+    {
+        Annotation[] annotations = method.getAnnotations();
+        for (int j = 0; j < annotations.length; j++) {
+            if(annotations[j].annotationType()==Session.class)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
     public HashMap<String, Mapping> allMappingUrls(String pckg){
         HashMap<String, Mapping> mappingUrl = new HashMap<String, Mapping>();
 

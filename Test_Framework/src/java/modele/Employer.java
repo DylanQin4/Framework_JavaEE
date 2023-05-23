@@ -1,10 +1,12 @@
 package modele;
 
 import etu1792.framework.annotation.Url;
+import etu1792.framework.annotation.Session;
 import etu1792.framework.*;
 import etu1792.framework.annotation.Auth;
 import etu1792.framework.annotation.Scope;
 import java.sql.Date;
+import java.util.HashMap;
 
 @Scope(value="Singleton")
 public class Employer {
@@ -14,6 +16,8 @@ public class Employer {
     String[] diplome;
     int[] choix;
     FileUpload image;
+    HashMap<String,Object> session;
+
 
     public Employer(){}
 
@@ -68,6 +72,16 @@ public class Employer {
         return mv;
     }
 
+    @Session
+    @Url(lien="liste_session")
+    public ModelView getListeSession()
+    {
+        ModelView mv = new ModelView();
+        mv.setView("liste_session.jsp");
+        mv.addItem("listes", this.getSession());
+        return mv;
+    }
+
     public int getId() {
         return id;
     }
@@ -115,4 +129,12 @@ public class Employer {
         this.image = image;
     }
     
+    public HashMap<String, Object> getSession() {
+        return session;
+    }
+
+    public void setSession(HashMap<String, Object> session) {
+        this.session = session;
+    }
+
 }
