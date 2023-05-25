@@ -1,5 +1,7 @@
 package etu1792.framework.servlet;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import etu1792.framework.FileUpload;
 import etu1792.framework.Mapping;
 import etu1792.framework.ModelView;
@@ -22,6 +24,7 @@ import java.util.Collection;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 import java.lang.reflect.Parameter;
+import java.net.http.HttpResponse;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -174,25 +177,42 @@ public class FrontServlet extends HttpServlet {
         }else{
             mv = this.getModelView(method, parameters , objet);
         }
-        
-        Set<String> mvKeys = mv.getData().keySet();
-        for(String mvKey : mvKeys){
-            request.setAttribute(mvKey , mv.getData().get(mvKey));
-        }
 
-        if(mv.getAuth().get(authKey_1)!=null)
+        // Json ou dispatch
+        if(mv.isJson())
         {
-            session.setAttribute(authKey_1,mv.getAuth().get(authKey_1));
-            if(mv.getAuth().get(authKey_2)!=null)
-            {
-                session.setAttribute(authKey_2,mv.getAuth().get(authKey_2));
+            this.sendJson(mv.getData(), response);
+        }else{
+            Set<String> mvKeys = mv.getData().keySet();
+            for(String mvKey : mvKeys){
+                request.setAttribute(mvKey , mv.getData().get(mvKey));
             }
+    
+            if(mv.getAuth().get(authKey_1)!=null)
+            {
+                session.setAttribute(authKey_1,mv.getAuth().get(authKey_1));
+                if(mv.getAuth().get(authKey_2)!=null)
+                {
+                    session.setAttribute(authKey_2,mv.getAuth().get(authKey_2));
+                }
+            }
+    
+            RequestDispatcher dispat = request.getRequestDispatcher(mv.getView());
+            dispat.forward(request,response);
         }
-
-        RequestDispatcher dispat = request.getRequestDispatcher(mv.getView());
-        dispat.forward(request,response);
     }
 
+    public void sendJson(HashMap<String,Object> data , HttpServletResponse response) throws Exception
+    {
+        // Conversion du HashMap en JSON
+        Gson gson = new GsonBuilder().create();
+        String json = gson.toJson(data);
+        // Configuration de la réponse HTTP
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        // Envoi du JSON dans le corps de la réponse
+        response.getWriter().write(json);
+    }
     public void dispatchToLogin(HttpServletRequest request , HttpServletResponse response) throws Exception
     {
         RequestDispatcher dispat = request.getRequestDispatcher("login.jsp");

@@ -6,7 +6,14 @@ public class ModelView{
 	String view;
 	HashMap<String,Object> data;
 	HashMap<String,Object> auth;
+	boolean isJson;
 
+	public boolean isJson() {
+		return isJson;
+	}
+	public void setJson(boolean isJson) {
+		this.isJson = isJson;
+	}
 	public ModelView()
 	{
 		this.setData(new HashMap<String,Object>());

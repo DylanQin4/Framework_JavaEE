@@ -41,6 +41,20 @@ public class Employer {
         mv.addItem("listes", list_emp);
         return mv;
     }
+    @Url(lien="getAllEmployer")
+    public ModelView getAll(){
+        String[] diplome = {"Licence","Bacc"};
+        Employer[] list_emp = new Employer[3];
+        list_emp[0] = new Employer(1,"Emp 1" , Date.valueOf("2000-01-01") , diplome);
+        list_emp[1] = new Employer(2,"Emp 2" , Date.valueOf("2000-01-01") , diplome);
+        list_emp[2] = new Employer(3,"Emp 3" , Date.valueOf("2000-01-01") , diplome);
+
+        ModelView mv = new ModelView();
+        mv.setView("listEmployer.jsp");
+        mv.addItem("listes", list_emp);
+        mv.setJson(true);
+        return mv;
+    }
 
     @Auth(profil="admin")
     @Url(lien="save_employer")
